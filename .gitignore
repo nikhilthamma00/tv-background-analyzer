@@ -1,0 +1,10 @@
+*.ipynb
+.ipynb_checkpoints/
+data/metadata_250/
+data/reddit_250/
+data/imdb/
+data/metadata/
+data/reviews/
+results/
+__pycache__/
+*.pyc
