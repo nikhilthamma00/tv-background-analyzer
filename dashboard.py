@@ -255,6 +255,22 @@ plot complexity, episodic structure, and cultural familiarity.
 # Sidebar filters
 st.sidebar.markdown("<h2>Filters</h2>", unsafe_allow_html=True)
 
+# Search bar
+search_query = st.sidebar.text_input(
+    "Search for a show",
+    placeholder="Type show name...",
+    help="Search for a specific TV show"
+)
+
+# Top N filter
+top_n_options = ["All Shows", "Top 5", "Top 10", "Top 25", "Top 50", "Top 100"]
+top_n_filter = st.sidebar.selectbox(
+    "Show Top Results",
+    options=top_n_options,
+    index=0,
+    help="Display only the top N shows by background score"
+)
+
 # Score range filter
 score_range = st.sidebar.slider(
     "Background Score Range",
@@ -288,12 +304,24 @@ reddit_filter = st.sidebar.radio(
     index=0
 )
 
+# Reset button
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
+if st.sidebar.button("Reset All Filters", use_container_width=True):
+    st.rerun()
+
 # Apply filters
-filtered_df = df[
-    (df['background_score_100'] >= score_range[0]) &
-    (df['background_score_100'] <= score_range[1]) &
-    (df['num_seasons'] >= season_range[0]) &
-    (df['num_seasons'] <= season_range[1])
+filtered_df = df.copy()
+
+# Apply search filter
+if search_query:
+    filtered_df = filtered_df[filtered_df['name'].str.contains(search_query, case=False, na=False)]
+
+# Apply other filters
+filtered_df = filtered_df[
+    (filtered_df['background_score_100'] >= score_range[0]) &
+    (filtered_df['background_score_100'] <= score_range[1]) &
+    (filtered_df['num_seasons'] >= season_range[0]) &
+    (filtered_df['num_seasons'] <= season_range[1])
 ]
 
 # Genre filter
@@ -308,9 +336,37 @@ if reddit_filter == "With Reddit Data":
 elif reddit_filter == "Without Reddit Data":
     filtered_df = filtered_df[filtered_df['has_reddit_data'] == False]
 
+# Sort by background score for Top N filter
+filtered_df = filtered_df.sort_values('background_score_100', ascending=False)
+
+# Apply Top N filter
+if top_n_filter != "All Shows":
+    n = int(top_n_filter.split()[1])
+    filtered_df = filtered_df.head(n)
+
 # Results summary in sidebar
 st.sidebar.markdown("---")
 st.sidebar.markdown(f"**Results:** {len(filtered_df)} shows")
+
+# Show active filters
+active_filters = []
+if search_query:
+    active_filters.append(f"Search: '{search_query}'")
+if top_n_filter != "All Shows":
+    active_filters.append(f"{top_n_filter}")
+if selected_genres:
+    active_filters.append(f"Genres: {len(selected_genres)}")
+if score_range != (0, 100):
+    active_filters.append(f"Score: {score_range[0]}-{score_range[1]}")
+if season_range != (int(df['num_seasons'].min()), int(df['num_seasons'].max())):
+    active_filters.append(f"Seasons: {season_range[0]}-{season_range[1]}")
+if reddit_filter != "All Shows":
+    active_filters.append(f"{reddit_filter}")
+
+if active_filters:
+    st.sidebar.markdown("**Active Filters:**")
+    for filter_text in active_filters:
+        st.sidebar.markdown(f"• {filter_text}")
 
 # Main content tabs
 tab1, tab2, tab3, tab4 = st.tabs(["Rankings", "Visualizations", "Show Details", "Methodology"])
